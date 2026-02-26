@@ -1,6 +1,6 @@
 ---
 title: "Opakapaka Simulation Report"
-date: "September 17, 2025"
+date: "February 24, 2026"
 date-format: "MMMM D, YYYY"
 
 authors:
@@ -19,7 +19,7 @@ filters:
   - fontawesome 
 
 format:
-  pdf: default
+  #pdf: default
   html:
     toc-float: true
     embed-resources: true
@@ -56,12 +56,12 @@ The Bottomfish Fishery-Independent Survey in Hawai'i (BFISH) uses a stratified-r
 # Methods 
 
 ## Simulation Approach  
-We tested the impact of varying sampling efforts of a fishery-independent survey by simulating abundance trends and data for 'ōpakapaka in the main Hawaiian islands given appropriate process and observational error. We fit the simulated data to an age-structured catch-at-age model and estimated spawning stock biomass, fishing mortality, and management reference points. Both the operating model (OM) and estimation model (EM) were built in Stock Synthesis (@methot_stock_2013) (SS3) and the simulation-estimation process was implemented using *ss3sim* (#TODO: Anderson et al 2013, 2014) in the R statistical software environment (#TODO R Core Team 2013). In total, 1,000 iterations were run using the Open Science Grid (#TODO: add citation). Each run involved (1) generating the population dynamics from the OM, with the given F and recruitment deviations timeseries, (2) sampling data with error from the OM, and (3) fitting those data in an EM. For each run, estimated quantities of interest were compared to the "true" values as calculated by the OM. All code for the analysis is available in the [GitHub repository](https://github.com/PIFSCstockassessments/Opaka_simulation). 
+We tested the impact of varying sampling efforts of a fishery-independent survey by simulating abundance trends and data for 'ōpakapaka in the main Hawaiian islands given appropriate process and observational error. We fit the simulated data to an age-structured catch-at-age model and estimated spawning stock biomass, fishing mortality, and management reference points. Both the operating model (OM) and estimation model (EM) were built in Stock Synthesis (@methot_stock_2013) (SS3) and the simulation-estimation process was implemented using *ss3sim* (#TODO: Anderson et al 2013, 2014) in the R statistical software environment (#TODO R Core Team 2013). In total, 1,000 iterations were run using the Open Science Grid (#TODO: add citation). Each run involved (1) generating the population dynamics from the OM, with the given F and recruitment deviations timeseries, (2) sampling data with error from the OM, and (3) fitting those data in an EM. For each run, estimated quantities of interest were compared to the "true" values as calculated by the OM. All code for the analysis is available in the [GitHub repository](https://github.com/noaa-pifsc/Opaka_simulation). 
 
 ## Operating Model  
 
 The operating model was a single-species, single-sex, age-structured model conditioned on 'ōpakapaka life history parameters and historical fishery data trends from the Deep 7 complex. Historical data included 75 years of catch, CPUE, and size data from commercial and non-commercial fisheries, plus seven years of abundance indices and length composition data from the Bottomfish Fishery-Independent Survey in Hawaii (BFISH).
-The OM simulated population dynamics and generated data with observation error for a 100-year projection period. Fishing mortality time series were generated based on historical patterns: low values at fishery inception, increasing through the 1970s and remaining high until the late 1990s, then declining in the early 2000s and stabilizing through the end of the time series (@fig-F-timeseries). Annual fishing mortality values included stochastic variability (standard deviation of 0.002) to introduce realistic variation between iterations. Following the most recent Deep 7 benchmark stock assessment, we applied time-varying ratios for non-commercial catch: 1.94 from 1948-2003 and 1.09 for 2004-2049 (#TODO add citation for deep7 assessment). 
+The OM simulated population dynamics and generated data with observation error for 100 years. Fishing mortality time series were generated based on historical patterns: low values at fishery inception, increasing through the 1970s and remaining high until the late 1990s, then declining in the early 2000s and stabilizing through the end of the time series (@fig-F-timeseries). Annual fishing mortality values included stochastic variability (standard deviation of 0.002) to introduce realistic variation between iterations. Following the most recent Deep 7 benchmark stock assessment, we applied time-varying ratios for non-commercial catch: 1.94 from 1948-2003 and 1.09 for 2004-2049 (#TODO add citation for deep7 assessment). 
 
 ```{r}
 #| message: false
@@ -106,7 +106,7 @@ $$
 where *r~reduced~* is the proportion by which the stock was reduced. Because of the non-linear relationship between spawning biomass and recruitment, the reduced level did not actually need to be 60%. We used an iterative process to determine what reduced proportion actually resulted in 60% of the mean recruitment (*r~reduced~* = 0.71). 
 This formulation ensured a smooth exponential decline reaching the target reduction after 10 years. The second phase maintained recruitment at the reduced level (60% of baseline) for an additional 15 years, representing a new regime of lower recruitment conditions.
 
-The baseline recruitment level was established using the mean recruitment from the most recent 15-year period (279.67 individuals), representing contemporary recruitment conditions prior to the simulated decline. 
+The baseline recruitment level was established using the mean recruitment from the most recent 15-year period (280,000 individuals), representing contemporary recruitment conditions prior to the simulated decline. 
 
 For the decline phase, annual multipliers were calculated as:
 $$
@@ -206,7 +206,9 @@ mutate(
     N_grids = c(0,0,407,407,557,557,632,632,557,557,257,257)) %>% 
     filter(str_detect(Scen_name, "Selex", negate = TRUE)) %>%
 distinct(Scen_name, .keep_all = T) %>%
-select(Scen_name, N_grids, Resfish_index_CV, Neff_len_Resfish) 
+select(Scen_name, N_grids, Resfish_index_CV, Neff_len_Resfish) %>%
+mutate(Scen_name = factor(Scen_name, levels = c("NSE", "XLSE", "LSE", "ISE", "HSE"))) %>%
+  arrange(Scen_name)
 
 knitr::kable(sas_table,
              col.names = c("Sampling Effort", "Grids", "CV", "effN"),
@@ -261,17 +263,13 @@ Sampling error (variability in data sampled from the OM) and observation error s
 The only structural difference in the EM from the OM was that for the poor recruitment condition, a recruitment regime time block was introduced for the last 15 years. Without the regime, the model was unable to fit the persistant decline in recruitment and the relative errors in outputs were over exaggerated. When fitting the model, all parameters were fixed except for $R_0$, the regime parameter for the poor recruitment scenarios, catchability for the commercial and survey fleets, and selectivity parameters for the commercial fishery and survey fleet. All life history and fishery relationships were fixed at their true value (as specified in the OM).
 
 ## Performance Indices  
-To compare the bias and precision of each sampling strategy, we looked at median relative error (MRE) and median absolute relative error (MARE) between the OM and EM for spawning stock biomass (SSB), fishing mortality (F), age-0 recruitment, and reference points SSB/SSB~MSST~ and F/F~MSY~. 
+To compare the bias and precision of each sampling strategy, we compared the relative error (RE) between the OM and EM for spawning stock biomass (SSB), fishing mortality (F), age-0 recruitment, and reference points SSB/SSB~MSST~ and F/F~MSY~. Bias was described by the median relative error (MRE)  
 
 $$
 MRE = median(\frac{EM - OM}{OM})
 $$
 
-$$ 
-MARE = median[abs(\frac{EM - OM}{OM})]
-$$
-
-where EM is the estimated value from the EM and OM is the true value from the OM. 
+where EM is the estimated value from the EM and OM is the true value from the OM, and precision was described by the variability in relative error across iterations. In particular, we report the bias and precision in the terminal year as this provides information on the long-term impacts of sample size on assessment and management abilities. We also evaluated the probability that the terminal year reference points (SSB/SSB~MSST~ and F/F~MSY~) were 10% greater or smaller than the true reference point values.   
 
 # Results  
 
@@ -281,7 +279,7 @@ where EM is the estimated value from the EM and OM is the true value from the OM
 ### Normal Recruitment Conditions  {.unnumbered}
 
 * All sampling strategies (including no survey effort) showed similar bias for SSB and F estimates (MRE 2-3.6% for SSB, -2.4% to -3.3% for F)  
-* While bias remained similar, uncertainty (error ranges) increased substantially as sampling effort decreased, with XLSE showing -20% to +35% relative error for SSB  
+* While bias remained similar, variability increased substantially as sampling effort decreased, with XLSE showing -20% to +35% relative error for SSB  
 * Terminal year F and F/FMSY estimates showed greater sensitivity to extremely low sampling effort (XLSE) compared to SSB-based metrics  
 * Persistent overestimation of recruitment led to optimistic bias in SSB estimates across all scenarios
 
@@ -298,28 +296,89 @@ Out of 1,000 EM runs, 8 runs did not converge (maximum gradient was greater than
 
 ## Normal Recruitment Conditions 
 
-We found that under normal recrutiment conditions, all sampling strategies were similiarly biased (@fig-mre) and precise (@fig-ssbmare) for SSB. MRE for the terminal year ranged from 2% to 3.6%, and MARE for the terminal year ranged from 5.8% to 10.6%. Even the scenario where there was no survey effort and just the commercial fishery CPUE and length data, the MRE was slightly smaller than the highest effort scenario. This was likely due to the length of the CPUE time series and the effective sample sizes of the length data from the fishery. Uncertainty around SSB, particularly in the last 25 years increased with decreasing sampling effort. The XLSE had the largest uncertainty, ranging between -20% and 35% relative error from the true values. This discrepency can have large impacts on reference point estimation.   
+We found that under normal recrutiment conditions, all sampling strategies were similiarly biased and precise in the terminal year for SSB (@tbl-re-term-yr). RE for the terminal year ranged from 2% (standard deviation of 0.154) to 3.6% (standard deviation of 0.136). Even the scenario where there was no survey effort and just the commercial fishery CPUE and length data, MRE was almost equivalent to the highest effort scenario (@tbl-re-term-yr). This was likely due to the length of the CPUE time series and the effective sample sizes of the length data from the fishery that was available to the model in the NSE scenario. With the exception of the NSE scenario, precision around SSB in the last 25 years decreased with decreasing sampling effort (@fig-mre). The XLSE had the largest variability of relative error, ranging between -30% and 54% from the true SSB, whereas HSE RE ranged between -19% and 39% away from the true SSB. (#TODO: should I report like this or should it be based on the 95th percentile to match the figure? then that would be more like between -22%-38% for XLSE and -12%-28% for HSE.) This discrepency can have large impacts on reference point estimation. 
 
 
 ```{r}
 ts_re <- read.csv("ts_re.csv")
 ```
 
+
+```{r}
+#| label: tbl-re-term-yr
+#| message: false
+#| tbl-cap: "Median relative error and standard deviation of relative error in the terminal year for spawning biomass, recruitment, and fishing mortality by scenario."
+ts_re %>%
+filter(year <= 2048 & str_detect(scenario, "Selex", negate = T)) %>%
+group_by(scenario, year) %>%
+summarise(
+  SpawnMed = quantile((SpawnBio_re), 0.5, na.rm = TRUE),
+  SpawnSD = sd(SpawnBio_re),
+  RecruitMed = quantile((Recruit_0_re), 0.5, na.rm = TRUE),
+  RecruitSD = sd(Recruit_0_re),
+  FMed = quantile((F_1_re), 0.5, na.rm = TRUE),
+  FSD = sd(F_1_re)) %>% 
+  separate(col = scenario, into = c("scen", "Rec_scenario", "25", "Yrs"), sep = "_",
+remove = F) %>% 
+mutate(Rec_scenario = ifelse(Rec_scenario == "poorrec", "Poor Recruitment", "Normal Recruitment")) %>%
+filter(year == max(year)) %>%
+mutate(
+    scen = case_when(
+      scen == "FRSonly" ~ "NSE",
+      scen == "HRF"     ~ "HSE",
+      scen == "IRF"     ~ "ISE",
+      scen == "LRF"     ~ "LSE",
+      scen == "XLRF"    ~ "XLSE"
+    ),
+    `Spawning Biomass`  = sprintf("%.3f (%.3f)", SpawnMed, SpawnSD),
+    `Recruitment`       = sprintf("%.3f (%.3f)", RecruitMed, RecruitSD),
+    `Fishing Mortality` = sprintf("%.3f (%.3f)", FMed, FSD),
+    scen = factor(scen, levels = c("NSE", "XLSE", "LSE", "ISE", "HSE"))
+  ) %>%
+  arrange(Rec_scenario, scen) %>%
+  ungroup() %>%
+  select(scen, Rec_scenario, `Spawning Biomass`, `Fishing Mortality`, `Recruitment`) %>%
+  gt(groupname_col = "Rec_scenario") %>%
+  cols_label(
+    scen = "Scenario"
+  ) %>%
+  # tab_spanner(
+  #   label = "Median RE (SD)",
+  #   columns = c(`Spawning Biomass`, `Recruitment`, `Fishing Mortality`)
+  # ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_row_groups()
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+  ) %>%
+  tab_options(
+    row_group.background.color = "#f0f0f0",
+    table.border.top.style = "solid",
+    table.border.bottom.style = "solid"
+  )
+```
+
+(#TODO: show only 25 year projection period? and keep 95th percentile intervals to show variability?)
 ```{r}
 #| label: fig-mre
 #| message: false
 #| warning: false
-#| fig-cap: "Timeseries of median (line) and 95% interval (band) relative error of spawing stock biomass for the high (HSE), intermediate (ISE), low (LSE), extra low (XLSE), and no survey effort (NSE) scenarios under both the normal and poor recruitment conditions."
+#| fig-cap: "Timeseries of median (line) and 95% quantile (band) relative error of spawing stock biomass for the high (HSE), intermediate (ISE), low (LSE), extra low (XLSE), and no survey effort (NSE) scenarios under both the normal and poor recruitment conditions."
 
 ts_re %>%
 filter(year <= 2048 & str_detect(scenario, "Selex", negate = T)) %>%
 group_by(scenario, year) %>% 
 summarise(med_re = quantile((SpawnBio_re), 0.5, na.rm = TRUE),
 uci = quantile((SpawnBio_re), .975, na.rm = TRUE),
-lci = quantile((SpawnBio_re), .05, na.rm = TRUE)) %>% 
+lci = quantile((SpawnBio_re), .05, na.rm = TRUE)
+) %>% 
 separate(col = scenario, into = c("scen", "Rec_scenario", "25", "Yrs"), sep = "_",
 remove = F) %>% 
 mutate(Rec_scenario = ifelse(Rec_scenario == "poorrec", "Poor Recruitment", "Normal Recruitment")) %>%
+filter(year > 2023) %>%
 ggplot() +
 geom_hline(yintercept = 0, color = "grey60") +
 geom_ribbon(aes(x = year, ymin = lci, ymax = uci, fill = scen, color = scen), 
@@ -342,43 +401,9 @@ stockplotr::theme_noaa() +
 ```
 
 
-```{r}
-#| label: fig-ssbmare
-#| message: false
-#| warning: false
-#| fig-cap: "Timeseries of median (line) and 95% interval (band) absolute relative error of spawing stock biomass for the high (HSE), intermediate (ISE), low (LSE), extra low (XLSE), and no survey effort (NSE) scenarios under both the normal and poor recruitment conditions."
+We found that fishing mortality also had similar bias and precision in the terminal year for all scenarios, however the bias was negative (estimates were slightly under estimated when compared to the true values). Terminal year F MRE ranged between -2.4% (standard deviation of 0.151) and -3.3% (0.103) (@tbl-re-term-yr). While bias was lowest in the termnial year under the XLSE scenario, the precision was the lowest for that scenario. Whereas the HSE which had highest bias, had higher precision. This makes sense that with a higher sampling effort, we would increase the precision around our estimates, however, we should be cautious as it could be slightly more biased. Similarly to SSB, with the exception of the NSE scenario, precision around F in the last 25 years decreased with decreasing sampling effort (@fig-Fmre). XLSE had the largest variability in RE, ranging from -34% to 42% and HSE had the smallest amount of variability ranging from -28% to 24% RE. (#TODO: 95th percentile range -23%-31% for XLSE, vs -18%-18% for HSE) 
 
-ts_re %>%
-filter(year <= 2048 & str_detect(scenario, "Selex", negate = T)) %>%
-group_by(scenario, year) %>% 
-summarise(med_re = quantile(abs(SpawnBio_re), 0.5, na.rm = TRUE),
-uci = quantile(abs(SpawnBio_re), .975, na.rm = TRUE),
-lci = quantile(abs(SpawnBio_re), .05, na.rm = TRUE)) %>% 
-separate(col = scenario, into = c("scen", "Rec_scenario", "25", "Yrs"), sep = "_",
-remove = F) %>% 
-mutate(Rec_scenario = ifelse(Rec_scenario == "poorrec", "Poor Recruitment", "Normal Recruitment")) %>%
-ggplot() +
-geom_hline(yintercept = 0, color = "grey60") +
-geom_ribbon(aes(x = year, ymin = lci, ymax = uci, fill = scen, color = scen), 
-alpha = .25, linewidth = .5) + 
-geom_line(aes(x = year, y = med_re, color = scen), linewidth = 1.2) +
-facet_wrap(~ Rec_scenario) + 
-labs(x = "Year", y = "SSB Absolute Relative Error") + 
-stockplotr::theme_noaa() +
-  scale_colour_manual(
-    values = arches_colors,
-    name = "Sampling Scenario", 
-    labels = c("NSE", "HSE", "ISE", "LSE", "XLSE")
-  ) +
-  scale_fill_manual(
-    values = arches_colors,
-    name = "Sampling Scenario", 
-    labels = c("NSE", "HSE", "ISE", "LSE", "XLSE")
-  )
-
-```
-
-We found that fishing mortality also had similar bias (@fig-Fmre) and precision (@fig-Fmare) for all scenarios, however the bias was negative (estimates were slightly under estimated when compared to the true values). Terminal year F MRE ranged between -2.4% and -3.3%. While MRE for all scenarios was similar for SSB and F, the uncertainty increased as the survey effort decreased, except for the NSE scenario which had similar uncertainty to the HSE scenario. The uncertainty also increased for all scenarios except the NSE scenario in the future years. Again, this was likely due to the exclusion of fishery CPUE and length data for those years and the short overlap of time between the survey and fishery data. 
+#TODO: Not sure where to move this to: This was likely due to the exclusion of fishery CPUE and length data for those years and the short overlap of time between the survey and fishery data. 
 
 ```{r}
 #| label: fig-Fmre
@@ -391,7 +416,9 @@ filter(year <= 2048 & str_detect(scenario, "Selex", negate = T)) %>%
 group_by(scenario, year) %>% 
 summarise(med_re = quantile((F_1_re), 0.5, na.rm = TRUE),
 uci = quantile((F_1_re), .975, na.rm = TRUE),
-lci = quantile((F_1_re), .05, na.rm = TRUE)) %>% 
+lci = quantile((F_1_re), .05, na.rm = TRUE)
+) %>% 
+filter(year > 2023) %>%
 separate(col = scenario, into = c("scen", "Rec_scenario", "25", "Yrs"), sep = "_",
 remove = F) %>% 
 mutate(Rec_scenario = ifelse(Rec_scenario == "poorrec", "Poor Recruitment", "Normal Recruitment")) %>%
@@ -416,18 +443,23 @@ stockplotr::theme_noaa() +
 
 ```
 
+
+We found that over the last 25 years, the HSE and ISE best estimated the true age-0 recruitment of the population over and the XLSE scenario estimated the true age-0 recruitment the worst, particularly in the last few years (@fig-recmre). However, when looking just at the terminal year, XLSE actually had the lowest MRE (@tbl-re-term-yr), but terminal year recruitment estimates are known to be unreliable because of the nature of the way it is estimated. The persistent over estimation of age-0 recruitment for all models helps to explain the positive bias in SSB over time, particularly in the last few years of the simulation. Noteably, the variability in RE for all scenarios was much larger for recruitment than for SSB or F (@tbl-re-term-yr), suggesting the EM's ability to estimate recruitment was very poor.   
+
 ```{r}
-#| label: fig-Fmare
+#| label: fig-recmre
 #| message: false
 #| warning: false
-#| fig-cap: "Timeseries of median (line) and 95% interval (band) absolute relative error of fishing mortality for the high (HSE), intermediate (ISE), low (LSE), extra low (XLSE), and no survey effort (NSE) scenarios under both the normal and poor recruitment conditions."
+#| fig-cap: "Timeseries of median (line) and 95% interval (band) relative error of age-0 recruitment for the high (HSE), intermediate (ISE), low (LSE), extra low (XLSE), and no survey effort (NSE) scenarios under both the normal and poor recruitment conditions."
 
 ts_re %>%
 filter(year <= 2048 & str_detect(scenario, "Selex", negate = T)) %>%
 group_by(scenario, year) %>% 
-summarise(med_re = quantile(abs(F_1_re), 0.5, na.rm = TRUE),
-uci = quantile(abs(F_1_re), .975, na.rm = TRUE),
-lci = quantile(abs(F_1_re), .05, na.rm = TRUE)) %>% 
+summarise(med_re = quantile((Recruit_0_re), 0.5, na.rm = TRUE),
+uci = quantile((Recruit_0_re), .975, na.rm = TRUE),
+lci = quantile((Recruit_0_re), .05, na.rm = TRUE)
+) %>% 
+filter(year > 2023) %>%
 separate(col = scenario, into = c("scen", "Rec_scenario", "25", "Yrs"), sep = "_",
 remove = F) %>% 
 mutate(Rec_scenario = ifelse(Rec_scenario == "poorrec", "Poor Recruitment", "Normal Recruitment")) %>%
@@ -437,7 +469,7 @@ geom_ribbon(aes(x = year, ymin = lci, ymax = uci, fill = scen, color = scen),
 alpha = .25, linewidth = .5) + 
 geom_line(aes(x = year, y = med_re, color = scen), linewidth = 1.2) +
 facet_wrap(~ Rec_scenario) + 
-labs(x = "Year", y = "F Absolute Relative Error") + 
+labs(x = "Year", y = "Age-0 Recruitment Relative Error") + 
 stockplotr::theme_noaa() +
   scale_colour_manual(
     values = arches_colors,
@@ -452,41 +484,6 @@ stockplotr::theme_noaa() +
 
 ```
 
-
-We found that the HSE and ISE best estimated the true age-0 recruitment of the population over the time series and the XLSE estimated the true age-0 recruitment the worst, particularly in the last few years (@fig-recmare). The persistent over estimation of age-0 recruitment for all models helps to explain the positive bias in SSB over time, particularly in the last few years of the simulation.  
-
-```{r}
-#| label: fig-recmare
-#| message: false
-#| warning: false
-#| fig-cap: "Timeseries of median (line) absolute relative error of age-0 recruitment for the high (HSE), intermediate (ISE), low (LSE), extra low (XLSE), and no survey effort (NSE) scenarios under both the normal and poor recruitment conditions."
-
-ts_re %>%
-filter(year <= 2047 & str_detect(scenario, "Selex", negate = T)) %>%
-group_by(scenario, year) %>% 
-summarise(med_re = quantile(abs(Recruit_0_re), 0.5, na.rm = TRUE),
-uci = quantile(abs(Recruit_0_re), .975, na.rm = TRUE),
-lci = quantile(abs(Recruit_0_re), .05, na.rm = TRUE)) %>% 
-separate(col = scenario, into = c("scen", "Rec_scenario", "25", "Yrs"), sep = "_",
-remove = F) %>% 
-mutate(Rec_scenario = ifelse(Rec_scenario == "poorrec", "Poor Recruitment", "Normal Recruitment")) %>%
-ggplot() +
-geom_hline(yintercept = 0, color = "grey60") +
-geom_line(aes(x = year, y = med_re, color = scen), linewidth = 1.2) +
-facet_wrap(~ Rec_scenario) + 
-labs(x = "Year", y = "Absolute Relative Error of Age-0 Recruitment") + 
-stockplotr::theme_noaa() +
-  scale_colour_manual(
-    values = arches_colors,
-    name = "Sampling Scenario", 
-    labels = c("NSE", "HSE", "ISE", "LSE", "XLSE")
-  ) +
-  scale_fill_manual(
-    values = arches_colors,
-    name = "Sampling Scenario", 
-    labels = c("NSE", "HSE", "ISE", "LSE", "XLSE")
-  )
-```
 
 Under normal recruitment conditions, all models performed similarly when estimating the stock status (SSB/SSB~MSST~ and F/F~MSY~). The median relative error of SSB/SSB~MSST~ was slightly over-estimated compared to the true status, less than 10% for all model runs. However the range of relative error increased as sampling effort decreased, with the exception of the NSE scenario.  The median relative error for all models was slightly underestimated for F/F~MSY~ and the range increased with decreasing sampling effort. We found that terminal year F and F/F~MSY~ is more sensitive to XLSE than terminal year SSB and SSB/SSB~MSST~. However, the other sampling scenarios seem to be robust to decreasing sampling effort for F and F~MSY~.  
 
@@ -524,7 +521,10 @@ ref_pt_re %>%
         Rec_scenario = ifelse(Rec_scenario == "poorrec", "Poor~Recruitment", "Normal~Recruitment")
     ) %>%
     ggplot() +
-    geom_boxplot(aes(x = scen, y = value, fill = scen)) +
+    geom_violin(aes(x = scen, y = value, fill = scen)) +
+    # ggdist::stat_halfeye(aes(x = scen, y = value, fill = scen), adjust = .5, width = .6, justification = -.3, .width = 0, point_color = NA) +
+    # geom_point(aes(x = scen, y = value, fill = scen, color = scen), 
+    # alpha = .4, position = position_jitter(width = .25)) +
     geom_hline(yintercept = 0, color = "grey50", linetype = 2) +
     facet_grid(Rec_scenario ~ name, scales = "free_y", labeller = label_parsed) +
     scale_x_discrete(labels = NULL, breaks = NULL) +
@@ -534,16 +534,23 @@ ref_pt_re %>%
         values = arches_colors,
         name = "Sampling Scenario",
         labels = c("NSE", "HSE", "ISE", "LSE", "XLSE")
-    )
+    ) +
+    scale_color_manual(
+        values = arches_colors,
+        name = "Sampling Scenario",
+        labels = c("NSE", "HSE", "ISE", "LSE", "XLSE")
+    ) + 
+    theme(legend.position="bottom")
+
 
 
 ```
 
 ## Poor Recruitment Conditions 
 
- When tested under poor recruitment conditions, we found that most models performed similarly in terms of bias and precision for SSB (@fig-mre @fig-ssbmare) and F (@fig-Fmre @fig-Fmare), however the MRE and MARE was greater for all models than under normal recruitment scenarios. Terminal SSB MARE ranged from 9.3% to 14% for all models except the NSE. NSE had a much higher error, 42% MARE for SSB. Terminal F MARE ranged from 9.3% to 13% for all models.The MARE for NSE showed an interesting pattern compared to the rest of the sampling scenarios for the F timeseries. MARE started off much higher than the other scenarios but during the period of poor recruitment, the MARE slightly decreased and was similar to the other sampling scenarios. This could be due to _____ #TODO  
+ When tested under poor recruitment conditions, we found that most models performed similarly in terms of bias and precision for SSB (@fig-mre #TODO: replace with another metric) and F (@fig-Fmre #TODO: replace with another metric), however the MRE and MARE was greater for all models than under normal recruitment scenarios. 
 
-We found that under poor recruitment conditions, HSE, ISE, and LSE perform similarly to the HSE and ISE models under normal recruitment scenarios (@fig-recmare). However, XLSE performs slightly worse and NSE performs the worst, with MARE increasing to over 40% in the last few years of the model. 
+We found that under poor recruitment conditions, HSE, ISE, and LSE perform similarly to the HSE and ISE models under normal recruitment scenarios (#TODO: replace with another metric). However, XLSE performs slightly worse and NSE performs the worst, with MARE increasing to over 40% in the last few years of the model. 
 
 When evaluating the performance of estimating stock status reference points, we found that the HSE and ISE scenarios performs the best for terminal year SSB and SSB/SSB~MSSST~ (@fig-refpoints). The median relative errors are closest to 0 for both quantites and the range of uncertainty is the smallest. NSE performs the worst, with the median relative error around 40% for both terminal year SSB and SSB/SSB~MSST~. The range of uncertainty becomes notably wider across sampling scenarios, with the largest range under the NSE scenario. It should be noted though that the true terminal year SSB or SSB/SSB~MSST~ is not recovered for the majority of runs under any scenario (the interquartile range does not include 0). This suggests that under poor recruitment conditions, all of the tested models would provide an overly optimistic view of the stock status. A similar pattern held true for terminal year F and F/F~MSY~. HSE had the smallest range of error and the range become wider as sampling effort decreased, except for the NSE scenario. For fishing mortality based estimates, the NSE scenario performed well. The MRE for both F and F/F~MSY~ was close to 0, and the true F and F/F~MSY~ values were captured within 50% of the runs (0 is included in the interquartile range). However, while that scenario does capture the true value more closely, the trade-off is that the range of error is much wider than any of the other scenarios. This could lead to a greater over estimation of F/F~MSY~ which could have negative impacts on the fishery such as unnecessary reduction in allocations or closures. 
 
