@@ -279,14 +279,14 @@ where EM is the estimated value from the EM and OM is the true value from the OM
 ### Normal Recruitment Conditions  {.unnumbered}
 
 * All sampling strategies (including no survey effort) showed similar bias for SSB and F estimates (MRE 2-3.6% for SSB, -2.4% to -3.3% for F)  
-* While bias remained similar, variability increased substantially as sampling effort decreased, with XLSE showing -20% to +35% relative error for SSB  
-* Terminal year F and F/FMSY estimates showed greater sensitivity to extremely low sampling effort (XLSE) compared to SSB-based metrics  
+* While bias remained similar, variability increased substantially as sampling effort decreased, with relative error for SSB in the XLSE scenario ranging from -30% to 54% 
+* Terminal year F and F/F~MSY~ estimates showed greater sensitivity to extremely low sampling effort (XLSE) compared to SSB-based metrics  
 * Persistent overestimation of recruitment led to optimistic bias in SSB estimates across all scenarios
 
 ### Poor Recruitment Conditions  {.unnumbered}
 
-* No survey effort scenario showed dramatically higher error rates (42% MARE for SSB) compared to other scenarios (9-14% MARE)  
-* Performance gaps between high and low effort scenarios widened substantially under recruitment failure  
+* NSE scenario showed dramatically higher error rates (42% MRE for SSB) compared to other scenarios (7.5-10% MRE)  
+* Performance gaps between high and low/no effort scenarios widened substantially under recruitment failure  
 * All models failed to accurately capture poor stock conditions, with most runs showing overly optimistic stock status estimates (interquartile ranges rarely included true values)  
 * While NSE captured true F/FMSY values more often, it came with much wider uncertainty ranges, potentially leading to management overreactions  
 
@@ -485,7 +485,9 @@ stockplotr::theme_noaa() +
 ```
 
 
-Under normal recruitment conditions, all models performed similarly when estimating the stock status (SSB/SSB~MSST~ and F/F~MSY~). The median relative error of SSB/SSB~MSST~ was slightly over-estimated compared to the true status, less than 10% for all model runs. However the range of relative error increased as sampling effort decreased, with the exception of the NSE scenario.  The median relative error for all models was slightly underestimated for F/F~MSY~ and the range increased with decreasing sampling effort. We found that terminal year F and F/F~MSY~ is more sensitive to XLSE than terminal year SSB and SSB/SSB~MSST~. However, the other sampling scenarios seem to be robust to decreasing sampling effort for F and F~MSY~.  
+Under normal recruitment conditions, all models were biased similarly when estimating the stock status (SSB/SSB~MSST~ and F/F~MSY~) however, there was a noticable decrease in precision as sampling effort decreased (@fig-refpoints). The only exception was the NSE scenario, where stock status was well estimated with similar bias and precision to the HSE scenario. The median relative error of SSB/SSB~MSST~ ranged between 2.3% and 4% across the five scenarios (@tbl-refpoints). Precision, in terms of standard deviation, ranged from 0.1 to 0.153, where NSE scenario had the highest precision (lowest SD) and XLSE had the lowest precision (highest SD). HSE had a similar precision to NSE, at 0.109. The difference between XLSE and HSE was approximately 4 percentage points, which could be an important difference when deciding management actions. The median relative error of F/F~MSY~ for all scenarios was very close, ranging between 2.8% and 3.1% (@tbl-refpoints). There was a larger range in standard deviations though, with again about a 4 percentage point difference between the HSE and XLSE scenarios. This suggests that all sampling scenarios can get you a similar estimate of terminal year F/F~MSY~, however, lower sampling effort will decrease the precision of those estimates and increase the chances of under- and overestimating the true F/F~MSY~. 
+
+Lastly, the probability of estimating key reference point values more than 10% off from the true value (above or below), is generally decent for all scenarios under normal recruitment conditions (@tbl-prob-wrong). The likelihood of incorrectly estimating SSB/SSB~MSST~ was less than 50% for almost all sampling scenarios, only LSE was slightly higher at 51%, and as low as 30% for NSE scenario. The likelihood of incorrectly estimating F/F~MSY~ was also less than 50% for all scenarios, and as low as 29% for NSE. In general, under normal recruitment, all sampling efforts are able to estimate stock status reference points with 10% of the true value.
 
 ```{r}
 #| message: false
@@ -496,14 +498,15 @@ Under normal recruitment conditions, all models performed similarly when estimat
 ref_pt_re <- read.csv("ref_pt_re.csv")
 
 ref_pt_re %>%
-    select(c(iteration, scenario, SpawnBio_re, ssb_ssbmsst_re, annual_F_re, F_Fmsy_re)) %>%
+    select(c(iteration, scenario, #SpawnBio_re, annual_F_re, 
+    ssb_ssbmsst_re, F_Fmsy_re)) %>%
     filter(scenario != "IRFSelex_poorrec_25_yrfwd") %>%
     rename(
         "iteration" = iteration,
         "scenario" = scenario,
-        "Terminal~Year~SSB" = SpawnBio_re,
+        # "Terminal~Year~SSB" = SpawnBio_re,
         "SSB/SSB[MSST]" = ssb_ssbmsst_re,
-        "Terminal~Year~F" = annual_F_re,
+        # "Terminal~Year~F" = annual_F_re,
         "F/F[MSY]" = F_Fmsy_re
     ) %>%
     pivot_longer(cols = -c(iteration, scenario)) %>%
@@ -514,14 +517,23 @@ ref_pt_re %>%
     mutate(
         name = factor(name,
             levels = c(
-                "Terminal~Year~SSB", "SSB/SSB[MSST]",
-                "Terminal~Year~F", "F/F[MSY]"
+                "SSB/SSB[MSST]", "F/F[MSY]"
             )
         ),
         Rec_scenario = ifelse(Rec_scenario == "poorrec", "Poor~Recruitment", "Normal~Recruitment")
     ) %>%
     ggplot() +
-    geom_violin(aes(x = scen, y = value, fill = scen)) +
+    geom_violin(aes(x = scen, y = value, fill = scen), alpha = .75, color = "grey30") +
+    geom_boxplot(aes(x = scen, y = value),
+                width = 0.1,
+                color = "grey10",
+                fill = "grey40",
+                outlier.shape = NA) +
+    stat_summary(aes(x = scen, y = value),
+                fun = median,
+                geom = "point",
+                color = "white",
+                size = 2) +
     # ggdist::stat_halfeye(aes(x = scen, y = value, fill = scen), adjust = .5, width = .6, justification = -.3, .width = 0, point_color = NA) +
     # geom_point(aes(x = scen, y = value, fill = scen, color = scen), 
     # alpha = .4, position = position_jitter(width = .25)) +
@@ -542,18 +554,120 @@ ref_pt_re %>%
     ) + 
     theme(legend.position="bottom")
 
+```
 
+```{r}
+#| label: tbl-refpoints
+#| tbl-cap: "Median relative error and standard deviation of relative error in the terminal year for SSB/SSB~MSST~ and F/F~MSY~ by scenario."
+ref_pt_re %>% 
+  filter(scenario != "IRFSelex_poorrec_25_yrfwd") %>%
+  group_by(scenario) %>%
+  summarise(
+    ssb_ssbmst_med = quantile(ssb_ssbmsst_re, .5, na.rm = TRUE), 
+    ssb_ssbmst_sd = sd(ssb_ssbmsst_re, na.rm = TRUE),
+    f_fmsy_med = quantile(F_Fmsy_re, .5, na.rm = TRUE),
+    f_fmsy_sd = sd(F_Fmsy_re, na.rm = TRUE)
+  ) %>%
+  separate(col = scenario, into = c("scen", "Rec_scenario", "25", "Yrs"), sep = "_", remove = F) %>% 
+  mutate(Rec_scenario = ifelse(Rec_scenario == "poorrec", "Poor Recruitment", "Normal Recruitment")) %>%
+  mutate(
+      scen = case_when(
+        scen == "FRSonly" ~ "NSE",
+        scen == "HRF"     ~ "HSE",
+        scen == "IRF"     ~ "ISE",
+        scen == "LRF"     ~ "LSE",
+        scen == "XLRF"    ~ "XLSE"
+      ),
+      `SSB/SSB[MSST]`  = sprintf("%.3f (%.3f)", ssb_ssbmst_med, ssb_ssbmst_sd),
+      `F/F[MSY]`       = sprintf("%.3f (%.3f)", f_fmsy_med, f_fmsy_sd),
+      scen = factor(scen, levels = c("NSE", "XLSE", "LSE", "ISE", "HSE"))
+    ) %>%
+  arrange(Rec_scenario, scen) %>%
+  ungroup() %>%
+  select(scen, Rec_scenario, `SSB/SSB[MSST]`, `F/F[MSY]`) %>%
+  gt(groupname_col = "Rec_scenario") %>%
+  cols_label(
+    scen = "Scenario"
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_row_groups()
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+  ) %>%
+  tab_options(
+    row_group.background.color = "#f0f0f0",
+    table.border.top.style = "solid",
+    table.border.bottom.style = "solid"
+  ) %>%
+  cols_label(
+    scen = "Scenario",
+    `SSB/SSB[MSST]` = md("SSB/SSB~MSST~"),
+    `F/F[MSY]`      = md("F/F~MSY~")
+  )
+
+
+```
+
+```{r}
+#| label: tbl-prob-wrong
+#| tbl-cap: "Probability that reference points SSB/SSB~MSST~ and F/F~MSY~ are above or below 10% from the true value for each scenario."
+ref_pt_re %>% 
+  filter(scenario != "IRFSelex_poorrec_25_yrfwd") %>%
+  group_by(scenario) %>%
+  summarise(
+    p_ssb_ssbmsst_wrong = round(mean(abs(ssb_ssbmsst_re) > 0.1, na.rm = TRUE),2),
+    p_f_fmsy_wrong = round(mean(abs(F_Fmsy_re) > 0.1, na.rm = TRUE),2)
+  ) %>%
+  separate(col = scenario, into = c("scen", "Rec_scenario", "25", "Yrs"), sep = "_", remove = F) %>% 
+  mutate(Rec_scenario = ifelse(Rec_scenario == "poorrec", "Poor Recruitment", "Normal Recruitment"),
+    scen = case_when(
+      scen == "FRSonly" ~ "NSE",
+      scen == "HRF"     ~ "HSE",
+      scen == "IRF"     ~ "ISE",
+      scen == "LRF"     ~ "LSE",
+      scen == "XLRF"    ~ "XLSE"
+    ),
+      scen = factor(scen, levels = c("NSE", "XLSE", "LSE", "ISE", "HSE"))
+    ) %>%
+  arrange(Rec_scenario, scen) %>%
+  ungroup() %>%
+  select(scen, Rec_scenario, p_ssb_ssbmsst_wrong, p_f_fmsy_wrong) %>%
+  gt(groupname_col = "Rec_scenario") %>%
+  cols_label(
+    scen = "Scenario",
+    p_ssb_ssbmsst_wrong = md("SSB/SSB~MSST~"),
+    p_f_fmsy_wrong      = md("F/F~MSY~")
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_row_groups()
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+  ) %>%
+  tab_options(
+    row_group.background.color = "#f0f0f0",
+    table.border.top.style = "solid",
+    table.border.bottom.style = "solid"
+  ) 
 
 ```
 
 ## Poor Recruitment Conditions 
 
- When tested under poor recruitment conditions, we found that most models performed similarly in terms of bias and precision for SSB (@fig-mre #TODO: replace with another metric) and F (@fig-Fmre #TODO: replace with another metric), however the MRE and MARE was greater for all models than under normal recruitment scenarios. 
+ When tested under poor recruitment conditions, we found that most scenarios performed similarly to each other in terms of bias and precision for SSB (@fig-mre) and F (@fig-Fmre). However compared to normal recruitment scenarios, the models performed worse in terms of both bias and precision. The notable exception was the NSE scenario. Under poor recruitment, the model performed much worse than any of the other sampling effort scenarios, with a MRE of 42% for terminal year SSB (standard deviation of .209) (@tbl-re-term-yr). However, this is not surprising due to the hyperstability of the CPUE data introduced in this scenario. The MRE for all other scenarios ranged from 7.5% (standard deviation of 0.109) to 10.2% (standard deviation of 0.162).   
 
-We found that under poor recruitment conditions, HSE, ISE, and LSE perform similarly to the HSE and ISE models under normal recruitment scenarios (#TODO: replace with another metric). However, XLSE performs slightly worse and NSE performs the worst, with MARE increasing to over 40% in the last few years of the model. 
+We found that under poor recruitment conditions, most scenarios performed slightly worse when estimating F compared to under normal recruitment conditions (@fig-Fmre). MRE ranged from -7.1% (standard deviation of 0.101) under HSE, to -9.7% (standard deviation) under XLSE (@tbl-re-term-yr). Interestingly, the NSE scenario performed the best for estimating F in the last ten years or so. However, the variability of F estimates in this scenario is much greater over the entire projection period, and in particular the last ten years.  
 
-When evaluating the performance of estimating stock status reference points, we found that the HSE and ISE scenarios performs the best for terminal year SSB and SSB/SSB~MSSST~ (@fig-refpoints). The median relative errors are closest to 0 for both quantites and the range of uncertainty is the smallest. NSE performs the worst, with the median relative error around 40% for both terminal year SSB and SSB/SSB~MSST~. The range of uncertainty becomes notably wider across sampling scenarios, with the largest range under the NSE scenario. It should be noted though that the true terminal year SSB or SSB/SSB~MSST~ is not recovered for the majority of runs under any scenario (the interquartile range does not include 0). This suggests that under poor recruitment conditions, all of the tested models would provide an overly optimistic view of the stock status. A similar pattern held true for terminal year F and F/F~MSY~. HSE had the smallest range of error and the range become wider as sampling effort decreased, except for the NSE scenario. For fishing mortality based estimates, the NSE scenario performed well. The MRE for both F and F/F~MSY~ was close to 0, and the true F and F/F~MSY~ values were captured within 50% of the runs (0 is included in the interquartile range). However, while that scenario does capture the true value more closely, the trade-off is that the range of error is much wider than any of the other scenarios. This could lead to a greater over estimation of F/F~MSY~ which could have negative impacts on the fishery such as unnecessary reduction in allocations or closures. 
+Age-0 recruitment esitmates were fairly well estimated in all scenarios except NSE (@fig-recmre). Terminal year age-0 recruitment estimates were less biased in the poor recruitment conditions than they were under normal recruitment recruitment (@tbl-re-term-yr). Additionally the precision was much higher for all scenarios, including NSE over the entire projection period (@fig-recmre).
 
+When evaluating the performance of estimating stock status reference points, we found that the HSE and ISE scenarios perform the best for terminal year SSB/SSB~MSSST~ and F/F~MSY~ (@fig-refpoints). The median relative errors are between 7% to 9% for SSB/SSB~MSST~ and -7% to -8% for F/F~MSY~ (@tbl-refpoints) and have the lowest variability. In terms of bias and precision, NSE performs the worst for terminal year SSB/SSB~MSST~, with the median relative error at 41.4%  and a standard deviation of 28%. Across the other scenarios, the range of uncertainty becomes notably wider across sampling scenarios, with the largest range under the NSE scenario. It should be noted though that the true terminal year SSB/SSB~MSST~ and F/F~MSY~ is not recovered for the majority of runs under any scenario (the interquartile range does not include 0). This suggests that under poor recruitment conditions, all of the tested models would provide an overly optimistic view of the stock status. The only exception was F/F~MSY~ under the NSE scenario, MRE for F/F~MSY~ was close to 0. However, while that scenario does capture the true value more closely, the trade-off is that the range of error is much wider than any of the other scenarios. This could lead to a greater over estimation of F/F~MSY~ which could have negative impacts on the fishery such as unnecessary reduction in allocations or closures. 
+
+Lastly, the probability of estimating key reference point values more than 10% off from the true value (above or below), is extremely high for all scenarios under poor recruitment conditions (@tbl-prob-wrong). The likelihood of incorrectly estimating SSB/SSB~MSST~ was over 50% for all sampling scenarios and as great as 81% for NSE scenario. The likelihood of incorrectly estimating F/F~MSY~ was also greater than 50% for all scenarios except HSE, which was 48%. 
 
 # Discussion  
 
