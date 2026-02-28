@@ -53,6 +53,7 @@ index_df <- data.frame(results.list[index.ind])
 #find models that didn't converge for filtering later
 nonconverged_its <- scalar_df %>% 
     filter(max_grad > 1e-4) %>% 
+    filter(scenario != "IRFSelex_poorrec_25_yrfwd") %>% 
     select(c(model_run, iteration,scenario)) %>% 
     mutate(nonconverged_run = paste(scenario, iteration, sep = "_"))
 ```
@@ -428,8 +429,11 @@ select(-c(F_1, F_2))
 
 ref_pt_re <- calculate_re(ref_pt_df)
 
+#write.csv(ref_pt_re, "Report/ref_pt_re.csv")
+
 ref_pt_re %>% 
 select(c(iteration, scenario, SpawnBio_re, bmsst_re, ssb_ssbmsst_re, annual_F_re, F_MSY_re, F_Fmsy_re)) %>%
+filter(F_MSY_re > -1 & scenario != "IRFSelex_poorrec_25_yrfwd") %>%
 pivot_longer(cols = c(SpawnBio_re, bmsst_re, ssb_ssbmsst_re, annual_F_re, F_MSY_re, F_Fmsy_re)) %>% 
 ggplot() +
 geom_boxplot(aes(x = scenario, y = value, fill = scenario)) + 
