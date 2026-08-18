@@ -28,6 +28,10 @@ em_dir <- paste0("opaka-em-", nyears_fwd, "-r0trend")
 #Get iteration number
 I <- as.numeric(tail(strsplit(args[1], "/")[[1]], n = 1))
 print(I)
+
+new_recdev_mat <- matrix(0, nrow = nyears, ncol = 128)
+new_recdev_mat[, I] <- full_poor_recdevs[, which(colnames(full_poor_recdevs) == I)]
+
 sas <- sas_full %>% filter(Scen_name == scen)
 
 # Get F-vector 
@@ -50,7 +54,7 @@ lcomp <- list(
     years = list(seq(1949, 2023), seq(2017, 2048, by = 1))
 )
 
-seed <- set.seed[I,2]
+seed <- set.seed[I,3]
 
 ss3sim_base(
     iterations = I,
@@ -60,7 +64,7 @@ ss3sim_base(
     lcomp_params = lcomp,
     om_dir = om_dir,
     em_dir = em_dir,
-    user_recdevs = full_poor_recdevs,
+    user_recdevs = new_recdev_mat,
     bias_adjust = T,
     seed = seed
 )

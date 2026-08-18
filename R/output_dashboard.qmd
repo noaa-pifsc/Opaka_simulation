@@ -25,15 +25,6 @@ source(file.path(main.dir, "R", "mean_length_fun.r"))
 files <- list.files(main.dir, pattern = "all_scens", full.names = T)
 results.list <-  lapply(files, read.csv)
 
-# rename FRS scenarios to match the naming convention of others
-# results.list <- lapply(results.list, function(df){
-#     if("scenario" %in% colnames(df)){
-#         df$scenario <- gsub("IRF_Selex_25_yrfwd", "IRFSelex_SQ_25_yrfwd", df$scenario)
-#         df$scenario <- gsub("IRF_Selex_poorrec_25_yrfwd", "IRFSelex_poorrec_25_yrfwd", df$scenario)
-#     }
-#     return(df)
-# })
-
 #get index of list objects for each type of csv
 scalar.ind <- grep(pattern = "scalar.csv", x = files)
 dq.ind <- grep(pattern = "dq.csv", x = files)
@@ -53,7 +44,6 @@ index_df <- data.frame(results.list[index.ind])
 #find models that didn't converge for filtering later
 nonconverged_its <- scalar_df %>% 
     filter(max_grad > 1e-4) %>% 
-    filter(scenario != "IRFSelex_poorrec_25_yrfwd") %>% 
     select(c(model_run, iteration,scenario)) %>% 
     mutate(nonconverged_run = paste(scenario, iteration, sep = "_"))
 ```
@@ -71,6 +61,7 @@ results_ts <- ts_df %>%
 
 #calculate relative error of SSB
 ts_re <- calculate_re(results_ts)
+
 ```
 
 ### 
@@ -103,7 +94,19 @@ labs(subtitle = "Recruitment deviations in OMs for SQ and poor rec scenarios", x
 #| label: om_em_index_vals
 index_df %>% 
 filter(Fleet == 3 & iteration == 1) %>%
-separate(col = scenario, into = c("scenario", "Rec_scenario", "25", "Yrs"), sep = "_") %>% 
+  extract(
+    scenario,
+    into = c("scen", "Rec_scenario", "qprior", "years", "Yrs"),
+    regex = "^([^_]+)_([^_]+)(?:_([^_]+))?_(\\d+)_(.+)$",
+    remove = FALSE
+  ) %>%
+    mutate(
+    scen_label = if_else(
+      is.na(qprior),
+      scen,
+      paste(scen, qprior, sep = "_")
+    )
+  ) %>%
 ggplot(aes(x = year)) + 
 #geom_vline(xintercept = 75, color = "grey60", linetype = 1) +
 geom_line(data = . %>% filter(model_run == "om"), 
@@ -112,7 +115,7 @@ geom_point(data = . %>% filter(model_run == "em"),
             aes(y = Obs, color = "Observed", shape = "Observed"), size = 2) +
 geom_line(data = . %>% filter(model_run == "em"), 
         aes(y = Exp, color = "Expected", linetype = "Expected")) +
-facet_grid(Rec_scenario ~ scenario, scales = "free_y") + 
+facet_grid(Rec_scenario ~ scen_label, scales = "free_y") + 
 scale_color_manual(name = "Data types", 
                     values = c("Simulated" = "blue", 
                             "Observed" = "#1B9E77",
@@ -143,12 +146,22 @@ title = "Comparison of OM generated data to fit data")
 index_df %>% 
 filter(model_run == "em" & Fleet == 3) %>% 
 filter(iteration == 6) %>% 
-#  filter(str_detect(scenario, "XLRF")) %>%
-# filter(str_detect(scenario, "Selex", negate=T)) %>% 
-separate(col = scenario, into = c("scenario", "Rec_scenario", "25", "Yrs"), sep = "_") %>% 
+  extract(
+    scenario,
+    into = c("scen", "Rec_scenario", "qprior", "years", "Yrs"),
+    regex = "^([^_]+)_([^_]+)(?:_([^_]+))?_(\\d+)_(.+)$",
+    remove = FALSE
+  ) %>%
+    mutate(
+    scen_label = if_else(
+      is.na(qprior),
+      scen,
+      paste(scen, qprior, sep = "_")
+    )
+  ) %>%
 ggplot(aes(x = year)) + 
-geom_point(aes(y = Obs, color = scenario)) +
-geom_line(aes(y = Exp, group = scenario, color = scenario)) +
+geom_point(aes(y = Obs, color = scen_label)) +
+geom_line(aes(y = Exp, group = scen_label, color = scen_label)) +
 facet_wrap(~Rec_scenario) + 
 labs(x = "Year", y = "Index of Abundance", 
 title = "BFISH Index Fit for One Iteration",
@@ -175,14 +188,25 @@ index_df <- index_df %>%
 # theme_classic()
 
 index_df %>%
-filter(model_run == "em" & Fleet_name == "ResFish") %>%
-separate(col = scenario, into = c("scen", "Rec_scenario", "25", "Yrs"), sep = "_",
-remove = F) %>% 
+filter(model_run == "em" & Fleet_name == "ResFish") %>%  
+extract(
+    scenario,
+    into = c("scen", "Rec_scenario", "qprior", "years", "Yrs"),
+    regex = "^([^_]+)_([^_]+)(?:_([^_]+))?_(\\d+)_(.+)$",
+    remove = FALSE
+  ) %>%
+    mutate(
+    scen_label = if_else(
+      is.na(qprior),
+      scen,
+      paste(scen, qprior, sep = "_")
+    )
+  ) %>%
 ggplot(aes(x = year, y = residuals)) + 
 geom_hline(yintercept = 0, linetype = 2, color = "grey50") +
 geom_boxplot(aes(x = year, y = residuals, group = year)) + 
-geom_smooth(aes(group = scenario, color = scenario)) +
-facet_grid(scen ~ Rec_scenario) + 
+geom_smooth(aes(group = scen_label, color = scen_label)) +
+facet_grid(scen_label ~ Rec_scenario) + 
 ylim(-.5, .5) +
 labs(x = "Year", y = "Residuals", title = "Residuals for BFISH Index Fits") +
 theme_bw()
@@ -209,12 +233,25 @@ theme_bw()
 ```{r}
 
 lencomp_df %>% 
-filter(str_detect(scenario, "FRSonly", negate = T) & iteration == 1) %>% 
-#filter(str_detect(scenario, "HRF_SQ") & iteration == 1) %>%
+filter(str_detect(scenario, "FRSonly", negate = T) & iteration == 1) %>%
+filter(str_detect(scenario, "SQ")) %>% 
+  extract(
+    scenario,
+    into = c("scen", "Rec_scenario", "qprior", "years", "Yrs"),
+    regex = "^([^_]+)_([^_]+)(?:_([^_]+))?_(\\d+)_(.+)$",
+    remove = FALSE
+  ) %>%
+    mutate(
+    scen_label = if_else(
+      is.na(qprior),
+      scen,
+      paste(scen, qprior, sep = "_")
+    )
+  ) %>%
 ggplot(aes(x = Bin)) + 
-geom_ribbon(data = . %>% filter(model_run == "em"), aes(ymin = 0, ymax = Obs, fill = scenario), alpha = .35) +
-# geom_line(data = . %>% filter(model_run == "em"), aes(y = Obs, color = scenario), linetype = 2) +
-geom_line(data = . %>% filter(model_run == "em"), aes(y = Exp, color = scenario)) +
+geom_ribbon(data = . %>% filter(model_run == "em"), aes(ymin = 0, ymax = Obs, fill = scen_label), alpha = .35) +
+
+geom_line(data = . %>% filter(model_run == "em"), aes(y = Exp, color = scen_label)) +
 facet_wrap(~year) + 
 labs(x = "Length", y = "Proportion", caption = "Observed (shaded area), and expected (solid line) length compositions for 1 iteration of scenarios") +
 theme_bw()
@@ -224,6 +261,7 @@ theme_bw()
 ```{r}
 #| label: mean_length
 #| cache: true
+#| eval: false
 
 mean_len_df <- mean_length(lencomp_df = lencomp_df)
 
@@ -232,13 +270,25 @@ as.data.frame() %>%
 tibble::rownames_to_column(var = "index") %>%
 separate(col = index, into = c("flt", "yr", "model_run", "iteration", "scen"), 
 sep = " ") %>%
-separate(col = scen, into = c("scenario", "Rec_scenario", "25", "Yrs"), sep = "_", remove = F) %>%
+extract(
+    scen,
+    into = c("scen", "Rec_scenario", "qprior", "years", "Yrs"),
+    regex = "^([^_]+)_([^_]+)(?:_([^_]+))?_(\\d+)_(.+)$",
+    remove = FALSE
+  ) %>%
+    mutate(
+    scen_label = if_else(
+      is.na(qprior),
+      scen,
+      paste(scen, qprior, sep = "_")
+    )
+  ) %>%
 filter(str_detect(scenario, "FRSonly", negate = T)) %>% 
 filter(model_run == "em") %>% 
 ggplot(aes(x = Yr)) +
 geom_boxplot(aes(y = Obsmn, group = Yr)) +
-geom_line(data = . %>% group_by(scenario, Rec_scenario, Yr) %>% summarise(med_exp = quantile(Expmn, .5)), aes(y = med_exp, color = scenario), linewidth = 1.5) + 
-facet_grid(scenario ~ Rec_scenario) +
+geom_line(data = . %>% group_by(scen_label, Rec_scenario, Yr) %>% summarise(med_exp = quantile(Expmn, .5)), aes(y = med_exp, color = scen_label), linewidth = 1.5) + 
+facet_grid(scen_label ~ Rec_scenario) +
 labs(x = "Year", y = "Mean Length at Age") +
 theme_bw()
 
@@ -257,39 +307,62 @@ n_iterations
 ```
 
 ```{r}
-good_its <- ts_re %>% filter(year == 2015 & SpawnBio_re < .07)
-
 ts_re %>%
-filter(year <= 2048) %>%
-#filter(iteration %in% good_its$iteration) %>%
-group_by(scenario, year) %>% 
-summarise(med_re = mean(SpawnBio_re, na.rm = TRUE),
-uci = quantile(SpawnBio_re, .975, na.rm = TRUE),
-lci = quantile(SpawnBio_re, .05, na.rm = TRUE)) %>% 
-separate(col = scenario, into = c("scen", "Rec_scenario", "25", "Yrs"), sep = "_",
-remove = F) %>% 
-ggplot() +
-geom_hline(yintercept = 0, color = "grey60") +
-geom_ribbon(aes(x = year, ymin = lci, ymax = uci, fill = scen), alpha = .25) + 
-geom_line(aes(x = year, y = med_re, color = scen), linewidth = 1.2) +
-#geom_text(data = n_iterations, aes(label=paste0("n = ", n_iterations), 
-#x = 6, y=.24),size=5,vjust=-0.5) +
-facet_wrap(~ Rec_scenario) + 
-labs(x = "Year", y = "SSB MRE") + 
-theme_bw()
+  filter(year <= 2048) %>%
+  group_by(scenario, year) %>%
+  summarise(
+    med_re = quantile(SpawnBio_re, 0.5, na.rm = TRUE),
+    uci = quantile(SpawnBio_re, 0.975, na.rm = TRUE),
+    lci = quantile(SpawnBio_re, 0.05, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  extract(
+    scenario,
+    into = c("scen", "Rec_scenario", "qprior", "years", "Yrs"),
+    regex = "^([^_]+)_([^_]+)(?:_([^_]+))?_(\\d+)_(.+)$",
+    remove = FALSE
+  ) %>%
+  mutate(
+    scen_label = if_else(
+      is.na(qprior),
+      scen,
+      paste(scen, qprior, sep = "_")
+    )
+  ) %>%
+  ggplot(aes(x = year)) +
+  geom_hline(yintercept = 0, color = "grey60") +
+  geom_ribbon(
+    aes(ymin = lci, ymax = uci, fill = scen_label),
+    alpha = 0.25,
+    color = NA
+  ) +
+  geom_line(aes(y = med_re, color = scen_label), linewidth = 1.2) +
+  facet_wrap(~Rec_scenario) +
+  labs(x = "Year", y = "SSB MRE", color = "Scenario", fill = "Scenario") +
+  theme_bw()
 ```
 
 ```{r}
 ts_re %>%
 group_by(scenario, year) %>% 
-filter(iteration == 10) %>% 
-separate(col = scenario, into = c("scen", "Rec_scenario", "25", "Yrs"), sep = "_",
-remove = F) %>% 
+filter(iteration == 15) %>% 
+  extract(
+    scenario,
+    into = c("scen", "Rec_scenario", "qprior", "years", "Yrs"),
+    regex = "^([^_]+)_([^_]+)(?:_([^_]+))?_(\\d+)_(.+)$",
+    remove = FALSE
+  ) %>%
+  mutate(
+    scen_label = if_else(
+      is.na(qprior),
+      scen,
+      paste(scen, qprior, sep = "_")
+    )) %>%
 ggplot() +
 geom_hline(yintercept = 0, color = "grey60") +
-geom_line(aes(x = year, y = SpawnBio_om, color = scenario), linetype = 2) + 
-geom_line(aes(x = year, y = SpawnBio_em, color = scenario)) +
-facet_grid(scen ~ Rec_scenario) + 
+geom_line(aes(x = year, y = SpawnBio_om, color = scen_label), linetype = 2) + 
+geom_line(aes(x = year, y = SpawnBio_em, color = scen_label)) +
+facet_grid(scen_label ~ Rec_scenario) + 
 labs(x = "Year", y = "SSB") + 
 theme_bw()
 ```
@@ -301,12 +374,23 @@ group_by(scenario, year) %>%
 summarise(med_re = mean(F_1_re, na.rm = TRUE), 
 uci = quantile(F_1_re, .95, na.rm = TRUE), 
 lci = quantile(F_1_re, .05, na.rm = TRUE)) %>%
-separate(col = scenario, into = c("scen", "Rec_scenario", "25", "Yrs"), sep = "_",
-remove = F) %>% 
+  extract(
+    scenario,
+    into = c("scen", "Rec_scenario", "qprior", "years", "Yrs"),
+    regex = "^([^_]+)_([^_]+)(?:_([^_]+))?_(\\d+)_(.+)$",
+    remove = FALSE
+  ) %>%
+  mutate(
+    scen_label = if_else(
+      is.na(qprior),
+      scen,
+      paste(scen, qprior, sep = "_")
+    )
+  ) %>%
 ggplot() +
 geom_hline(yintercept = 0, color = "grey60") +
-geom_ribbon(aes(x = year, ymin = lci, ymax = uci, fill = scen), alpha = .25) + 
-geom_line(aes(x = year, y = med_re, color = scen), linewidth = 1.2) +
+geom_ribbon(aes(x = year, ymin = lci, ymax = uci, fill = scen_label), alpha = .25) + 
+geom_line(aes(x = year, y = med_re, color = scen_label), linewidth = 1.2) +
 facet_wrap(~Rec_scenario) + 
 labs(x = "Year", y = "F MRE") + 
 theme_bw()
@@ -317,44 +401,29 @@ theme_bw()
 ts_re %>%
 group_by(scenario, year) %>% 
 filter(iteration == 10) %>% 
-separate(col = scenario, into = c("scen", "Rec_scenario", "25", "Yrs"), sep = "_",
-remove = F) %>% 
+ extract(
+    scenario,
+    into = c("scen", "Rec_scenario", "qprior", "years", "Yrs"),
+    regex = "^([^_]+)_([^_]+)(?:_([^_]+))?_(\\d+)_(.+)$",
+    remove = FALSE
+  ) %>%
+  mutate(
+    scen_label = if_else(
+      is.na(qprior),
+      scen,
+      paste(scen, qprior, sep = "_")
+    )
+  ) %>%
 ggplot() +
 geom_hline(yintercept = 0, color = "grey60") +
-geom_line(aes(x = year, y = F_1_om, color = scenario), linetype = 2) + 
-geom_line(aes(x = year, y = F_1_em, color = scenario)) +
-facet_grid(scen ~ Rec_scenario) + 
+geom_line(aes(x = year, y = F_1_om, color = scen_label), linetype = 2) + 
+geom_line(aes(x = year, y = F_1_em, color = scen_label)) +
+facet_grid(scen_label ~ Rec_scenario) + 
 labs(x = "Year", y = "F") + 
 theme_bw()
 ```
 
 ##  
-```{r}
-#| eval: false
-ts_re %>%
-group_by(scenario, year) %>% 
-summarise(med_re = quantile(SpawnBio_re, .5)) %>% 
-ggplot() +
-geom_hline(yintercept = 0, color = "grey60") +
-geom_line(aes(x = year, y = med_re, color = scenario), linewidth = 1.2) +
-gghighlight(str_detect(scenario, "SQ")) +
-labs(x = "Year", y = "SSB MRE") + 
-theme_bw()
-```
-```{r}
-#| eval: false
-ts_re %>%
-group_by(scenario, year) %>% 
-summarise(med_re = quantile(SpawnBio_re, .5)) %>% 
-ggplot() +
-geom_hline(yintercept = 0, color = "grey60") +
-geom_line(aes(x = year, y = med_re, color = scenario), linewidth = 1.2) +
-gghighlight(str_detect(scenario, "poorrec")) +
-labs(x = "Year", y = "SSB MRE") + 
-theme_bw()
-
-
-```
 
 ```{r}
 ts_re %>% 
@@ -362,28 +431,49 @@ group_by(scenario, year) %>%
 summarise(med_re = quantile(rec_dev_re, .5, na.rm = TRUE),
 uci = quantile(rec_dev_re, .95, na.rm = TRUE),
 lci = quantile(rec_dev_re, .05, na.rm = TRUE)) %>% 
-separate(col = scenario, into = c("scen", "Rec_scenario", "25", "Yrs"), sep = "_",
-remove = F) %>% 
+ extract(
+    scenario,
+    into = c("scen", "Rec_scenario", "qprior", "years", "Yrs"),
+    regex = "^([^_]+)_([^_]+)(?:_([^_]+))?_(\\d+)_(.+)$",
+    remove = FALSE
+  ) %>%
+  mutate(
+    scen_label = if_else(
+      is.na(qprior),
+      scen,
+      paste(scen, qprior, sep = "_")
+    )
+  ) %>% 
 ggplot() +
 geom_hline(yintercept = 0, color = "grey60") +
-geom_ribbon(aes(x = year, ymin = lci, ymax = uci, fill = scen), alpha = .25) + 
-geom_line(aes(x = year, y = med_re, color = scen), linewidth = 1.2) +
+geom_ribbon(aes(x = year, ymin = lci, ymax = uci, fill = scen_label), alpha = .25) + 
+geom_line(aes(x = year, y = med_re, color = scen_label), linewidth = 1.2) +
 facet_wrap(~Rec_scenario) + 
 labs(x = "Year", y = "Rec Dev MRE") + 
 theme_bw()
 
 ts_re %>% 
 group_by(scenario, year) %>% 
-
 summarise(med_re = quantile(Recruit_0_re, .5, na.rm = TRUE),
 uci = quantile(Recruit_0_re, .95, na.rm = TRUE),
 lci = quantile(Recruit_0_re, .05, na.rm = TRUE)) %>% 
-separate(col = scenario, into = c("scen", "Rec_scenario", "25", "Yrs"), sep = "_",
-remove = F) %>% 
+ extract(
+    scenario,
+    into = c("scen", "Rec_scenario", "qprior", "years", "Yrs"),
+    regex = "^([^_]+)_([^_]+)(?:_([^_]+))?_(\\d+)_(.+)$",
+    remove = FALSE
+  ) %>%
+  mutate(
+    scen_label = if_else(
+      is.na(qprior),
+      scen,
+      paste(scen, qprior, sep = "_")
+    )
+  ) %>%
 ggplot() +
 geom_hline(yintercept = 0, color = "grey60") +
 # geom_ribbon(aes(x = year, ymin = lci, ymax = uci, fill = scen), alpha = .25) + 
-geom_line(aes(x = year, y = med_re, color = scen), linewidth = 1.2) +
+geom_line(aes(x = year, y = med_re, color = scen_label), linewidth = 1.2) +
 facet_wrap(~Rec_scenario) + 
 labs(x = "Year", y = "Recruitment MRE") + 
 theme_bw()
@@ -433,10 +523,23 @@ ref_pt_re <- calculate_re(ref_pt_df)
 
 ref_pt_re %>% 
 select(c(iteration, scenario, SpawnBio_re, bmsst_re, ssb_ssbmsst_re, annual_F_re, F_MSY_re, F_Fmsy_re)) %>%
-filter(F_MSY_re > -1 & scenario != "IRFSelex_poorrec_25_yrfwd") %>%
+filter(F_MSY_re > -1) %>%
 pivot_longer(cols = c(SpawnBio_re, bmsst_re, ssb_ssbmsst_re, annual_F_re, F_MSY_re, F_Fmsy_re)) %>% 
+ extract(
+    scenario,
+    into = c("scen", "Rec_scenario", "qprior", "years", "Yrs"),
+    regex = "^([^_]+)_([^_]+)(?:_([^_]+))?_(\\d+)_(.+)$",
+    remove = FALSE
+  ) %>%
+  mutate(
+    scen_label = if_else(
+      is.na(qprior),
+      scen,
+      paste(scen, qprior, sep = "_")
+    )
+  ) %>%
 ggplot() +
-geom_boxplot(aes(x = scenario, y = value, fill = scenario)) + 
+geom_boxplot(aes(x = scen_label, y = value, fill = scen_label)) + 
 geom_hline(yintercept = 0, color = "grey50", linetype = 2) +
 facet_wrap(~name, scales = "free_y") +
 scale_x_discrete(labels = NULL, breaks = NULL) +

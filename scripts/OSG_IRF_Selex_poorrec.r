@@ -22,12 +22,16 @@ nyears_fwd <- 25
 scen <- "IRFSelex_poorrec"
 
 #Template OM and EM files
-om_dir <- paste0("opaka-om-", nyears_fwd, "-selex")
-em_dir <- paste0("opaka-em-", nyears_fwd, "-selex")
+om_dir <- paste0("opaka-om-", nyears_fwd, "-selex-qprior")
+em_dir <- paste0("opaka-em-", nyears_fwd, "-selex-qprior")
 
 #Get iteration number
 I <- as.numeric(tail(strsplit(args[1], "/")[[1]], n = 1))
 print(I)
+
+new_recdev_mat <- matrix(0, nrow = nyears, ncol = 128)
+new_recdev_mat[, I] <- full_poor_recdevs[, which(colnames(full_poor_recdevs) == I)]
+
 sas <- sas_full %>% filter(Scen_name == scen)
 
 # Get F-vector 
@@ -41,8 +45,8 @@ index <- list(
     fleets = c(1, 3), 
     years = list(seq(1949, 2023, by = 1), seq(2017, 2048, by = 1)),
     seas = list(7,1), 
-    sds_obs = list(0.02, sas[which(sas$N_years == nyears_fwd), "Resfish_index_CV"]),
-    sds_out = list(0.203, sas[which(sas$N_years == nyears_fwd), "Resfish_index_CV"]) 
+    sds_obs = list(0.2, sas[which(sas$N_years == nyears_fwd), "Resfish_index_CV"]),
+    sds_out = list(0.20, sas[which(sas$N_years == nyears_fwd), "Resfish_index_CV"]) 
 )
 
 lcomp <- list(
@@ -52,22 +56,17 @@ lcomp <- list(
     years = list(seq(1949, 2023), seq(2017, 2048, by = 1))
 )
 
-acomp <- list(
-    fleets = 3, Nsamp = list(rep(40, 32)), years = list(seq(2017, 2048))
-)
-
-seed <- set.seed[I,2]
+seed <- set.seed[I,3]
 
 ss3sim_base(
     iterations = I,
-    scenarios = paste(scen, nyears_fwd, "yrfwd", sep = "_"), 
+    scenarios =  paste(scen, "qprior", nyears_fwd, "yrfwd", sep = "_"), 
     f_params = F_list,
     index_params = index,
     lcomp_params = lcomp,
-    agecomp_params = acomp,
-    om_dir = om_dir,
-    em_dir = em_dir,
-    user_recdevs = full_poor_recdevs,
+    om_dir = file.path("models", om_dir),
+    em_dir = file.path("models", em_dir),
+    user_recdevs = new_recdev_mat,
     bias_adjust = T,
     seed = seed
 )
