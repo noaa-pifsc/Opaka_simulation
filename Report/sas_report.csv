@@ -1,0 +1,15 @@
+Scen_name,N_grids,Neff_len_Resfish,Resfish_index_CV,Resfish_sd_obs,Scen_type
+FRSonly_SQ,0,0,0.2,0,effort
+FRSonly_poorrec,0,0,0,0,effort
+LRF_SQ,407,30,0.24,0.2,effort
+LRF_poorrec,407,30,0.24,0.2,effort
+IRF_SQ,557,45,0.18,0.15,effort
+IRF_poorrec,557,45,0.18,0.15,effort
+HRF_SQ,632,60,0.15,0.1,effort
+HRF_poorrec,632,60,0.15,0.1,effort
+IRFSelex_poorrec_qprior,557,45,0.18,0.15,selectivity
+IRFSelex_poorrec,557,45,0.18,0.15,selectivity
+HRFSelex_poorrec,632,60,0.15,0.1,selectivity
+LRFSelex_poorrec,407,30,0.24,0.2,selectivity
+XLRF_SQ,257,15,0.3,0.3,effort
+XLRF_poorrec,257,15,0.3,0.3,effort

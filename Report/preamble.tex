@@ -1,0 +1,206 @@
+% ==========================================
+% 1. CORE PACKAGES & UTILITIES
+% ==========================================
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{fadings}
+\usepackage{xcolor}
+\usepackage{etoolbox}
+\usepackage[titles]{tocloft}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage[document]{ragged2e}
+
+% --- ADD THESE LINES TO LEFT-ALIGN CAPTIONS ---
+\usepackage{caption}
+\captionsetup{
+  justification=raggedright, % Forces left-alignment
+  singlelinecheck=false      % Prevents short captions from automatically centering
+}
+
+% Type-specific overrides
+\captionsetup[figure]{labelsep=period} 
+\captionsetup[table]{labelsep=colon}
+
+% --- Global Configurations ---
+\graphicspath{{C:/Users/Leonardo.Durante/Documents/GitHub/ReefFish assessment/2025_Hawaii_ReefFish/}}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  urlcolor=blue,   % Keeps external web URLs blue
+  citecolor=blue   % Keeps bibliographical citations blue
+  linkbordercolor=blue, % Set underline border color to blue
+  urlbordercolor=blue,
+  citebordercolor=blue
+}
+
+
+% ==========================================
+% 2. DOCUMENT COLORS
+% ==========================================
+\definecolor{noaanavy}{RGB}{0,35,100}
+\definecolor{headingblue}{RGB}{0,48,135}
+\definecolor{subheadingblue}{RGB}{0,133,202}
+\definecolor{subsubheadingblue}{RGB}{0,141,168}
+\definecolor{levelfourpurple}{RGB}{87,97,192}
+
+% ==========================================
+% 3. DOCUMENT HIERARCHY STYLES (LEVELS 1-4)
+% ==========================================
+
+% --- Part Formatting (No Label) ---
+\titleclass{\part}{straight}
+\titleformat{\part}[block]{\normalfont\huge\bfseries}{}{0pt}{}
+\titlespacing*{\part}{0pt}{0pt}{20pt}
+\makeatletter
+\renewcommand{\thepart}{}
+\renewcommand{\partname}{}
+\makeatother
+
+% --- Level 1: Chapter (Numbered) ---
+\titleformat{\chapter}[hang]
+  {\fontspec{Arial Bold}\fontsize{14pt}{16pt}\selectfont\color{headingblue}}
+  {\thechapter}{1em}{}
+\titlespacing*{\chapter}{0pt}{20pt}{20pt}
+
+% --- Level 1: Chapter (Unnumbered / TOC, LOF, LOT, etc.) ---
+\titleformat{name=\chapter,numberless}[hang]
+  {\fontspec{Arial Bold}\fontsize{14pt}{16pt}\selectfont\color{headingblue}}
+  {}{0pt}{}
+\titlespacing*{name=\chapter,numberless}{0pt}{20pt}{20pt}
+
+% --- Level 2: Section ---
+\titleformat{\section}[hang]
+  {\fontspec{Arial Bold}\fontsize{12pt}{14pt}\selectfont\color{subheadingblue}}
+  {\thesection}{1em}{}
+\titlespacing*{\section}{0pt}{20pt}{20pt}
+
+% --- Level 3: Subsection ---
+\titleformat{\subsection}[hang]
+  {\fontspec{Arial Italic}\fontsize{12pt}{14pt}\selectfont\color{subsubheadingblue}}
+  {\thesubsection}{1em}{}
+\titlespacing*{\subsection}{0pt}{20pt}{20pt}
+
+% --- Level 4: Subsubsection ---
+\titleformat{\subsubsection}[hang]
+  {\fontspec{Arial Italic}\fontsize{11pt}{13pt}\selectfont\color{levelfourpurple}}
+  {\thesubsubsection}{1em}{}
+\titlespacing*{\subsubsection}{0pt}{20pt}{20pt}
+
+% ==========================================
+% 4. TABLE OF CONTENTS (TOC) FORMATTING
+% ==========================================
+
+% Force normal font weights across all layout levels in TOC
+\renewcommand{\cftchapfont}{\normalfont}
+\renewcommand{\cftchappagefont}{\normalfont}
+\renewcommand{\cftsecfont}{\normalfont}
+\renewcommand{\cftsecpagefont}{\normalfont}
+\renewcommand{\cftsubsecfont}{\normalfont}
+\renewcommand{\cftsubsecpagefont}{\normalfont}
+
+% Force dot leaders (........) for Main Headings, LOF, and LOT
+\renewcommand{\cftchapleader}{\cftdotfill{\cftdotsep}}
+
+% Clean internal macro patches to permanently strip Report Class bolding overrides
+\makeatletter
+\patchcmd{\l@chapter}{\bfseries}{\normalfont}{}{}
+\patchcmd{\l@section}{\bfseries}{\normalfont}{}{}
+\patchcmd{\l@subsection}{\bfseries}{\normalfont}{}{}
+\makeatother
+
+% ==========================================
+% 5. LIST OF FIGURES & TABLES FORMATTING
+% ==========================================
+\renewcommand{\cftfigpresnum}{Figure }
+\renewcommand{\cftfigaftersnum}{.}
+\addtolength{\cftfignumwidth}{2.5em}
+
+\renewcommand{\cfttabpresnum}{Table }
+\renewcommand{\cfttabaftersnum}{.}
+\addtolength{\cfttabnumwidth}{2.5em}
+
+% Strip internal native header routines (Allows clean markdown control)
+\makeatletter
+\renewcommand{\listoffigures}{\@starttoc{lof}}
+\renewcommand{\listoftables}{\@starttoc{lot}}
+\makeatother
+
+% ==========================================
+% 5.1 FIX LOF/LOT TOP SPACING
+% ==========================================
+\makeatletter
+% Patch the command that sets up the chapter header for these lists
+\patchcmd{\listoffigures}{\chapter*}{\@makeschapterhead{0pt}\chapter*}{}{}
+\patchcmd{\listoftables}{\chapter*}{\@makeschapterhead{0pt}\chapter*}{}{}
+
+% Ensure the titles themselves are formatted like your other chapters
+\titleformat{name=\chapter,numberless}[hang]
+  {\fontspec{Arial Bold}\fontsize{14pt}{16pt}\selectfont\color{headingblue}}
+  {}{0pt}{}
+\titlespacing*{name=\chapter,numberless}{0pt}{-35pt}{12pt}
+\makeatother
+
+% ==========================================
+% 6. RUNNING HEADERS & FOOTERS
+% ==========================================
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Define the two alternating text blocks
+\newcommand{\footerDOC}{\fontspec{Arial}\fontsize{11pt}{13pt}\selectfont U.S. Department of Commerce $|$ National Oceanic and Atmospheric Administration}
+\newcommand{\footerNMFS}{\fontspec{Arial}\fontsize{11pt}{13pt}\selectfont National Marine Fisheries Service $|$ Pacific Islands Fisheries Science Center}
+
+% Dynamically alternate based on even/odd page numbers
+\fancyfoot[L]{\ifodd\value{page}\footerNMFS\else\footerDOC\fi}
+\fancyfoot[C]{}
+\fancyfoot[R]{\fontspec{Arial}\fontsize{11pt}{13pt}\selectfont \thepage}
+
+% Mirror styles to "plain" page states (TOC/Chapter open pages)
+\fancypagestyle{plain}{%
+  \fancyhf{}
+  \fancyfoot[L]{\ifodd\value{page}\footerNMFS\else\footerDOC\fi}
+  \fancyfoot[C]{}
+  \fancyfoot[R]{\fontspec{Arial}\fontsize{11pt}{13pt}\selectfont \thepage}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+}
+
+% ==========================================
+% 7. APPENDIX BACKUP ROUTINE
+% ==========================================
+\gappto\appendix{
+  \renewcommand{\appendixname}{Appendix}
+  
+  \titleformat{\chapter}[hang]
+    {\fontspec{Arial Bold}\fontsize{14pt}{16pt}\selectfont\color{headingblue}}
+    {\appendixname\ \thechapter.}{1em}{}
+    
+  \titleformat{name=\chapter,numberless}[hang]
+    {\fontspec{Arial Bold}\fontsize{14pt}{16pt}\selectfont\color{headingblue}}
+    {}{0em}{}
+    
+  \titlespacing*{\chapter}{0pt}{20pt}{20pt}
+  \titlespacing*{name=\chapter,numberless}{0pt}{20pt}{20pt}
+  
+  \assignpagestyle{\chapter}{fancy}
+}
+
+%GEtting tables right
+\renewcommand{\toprule}{\hline}
+\renewcommand{\midrule}{\hline}
+\renewcommand{\bottomrule}{\hline}
+\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}b{#1}}
+
+\usepackage[nameinlink,capitalise]{cleveref}

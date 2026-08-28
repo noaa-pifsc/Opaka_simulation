@@ -62,6 +62,8 @@ results_ts <- ts_df %>%
 #calculate relative error of SSB
 ts_re <- calculate_re(results_ts)
 
+#save ts_re to report folder so it can be used to make figures directly
+#write.csv(ts_re, file = "../Report/ts_re.csv", row.names = FALSE)
 ```
 
 ### 
@@ -519,7 +521,7 @@ select(-c(F_1, F_2))
 
 ref_pt_re <- calculate_re(ref_pt_df)
 
-#write.csv(ref_pt_re, "Report/ref_pt_re.csv")
+#write.csv(ref_pt_re, "./Report/ref_pt_re.csv")
 
 ref_pt_re %>% 
 select(c(iteration, scenario, SpawnBio_re, bmsst_re, ssb_ssbmsst_re, annual_F_re, F_MSY_re, F_Fmsy_re)) %>%

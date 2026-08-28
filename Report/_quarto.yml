@@ -1,0 +1,58 @@
+project:
+  type: book
+  output-dir: _output
+
+book:
+  title: "Opakapaka Simulation Report"
+  date: today
+  date-format: "MMMM D, YYYY"
+  author:
+    - name: "Megumi Oshima, Marc Nadon, John Syslo,<br>Hongguang Ma, and Felipe Carvalho"
+      affiliation: "Pacific Islands Fisheries Science Center"
+  chapters:
+    - index.qmd
+    - chapters/01_introduction.qmd
+    - chapters/02_Methods.qmd
+    - chapters/03_Results.qmd
+    - chapters/06_discussion.qmd
+    - chapters/07_references.qmd
+
+bibliography: references.bib
+
+format:
+  pdf:
+    pdf-standard: ua-2  # Enforces PDF/UA-2 (Universal Accessibility) standards
+    documentclass: report
+    mainfont: "Arial"
+    classoption: [12pt, letterpaper]
+    geometry:
+      - top=1in
+      - bottom=1in
+      - left=1in
+      - right=1in
+      - headheight=15pt
+      - headsep=0.3in
+      - footskip=0.5in
+      - includehead=false     # FORCES body text to anchor at exactly 1"
+      - includefoot=false     # FORCES body text boundary to anchor at exactly 1"
+    linestretch: 1.15
+    toc: true
+    toc-depth: 2
+    lot: false
+    lof: false
+    linkcolor: "black"
+    number-sections: false
+    fig-pos: "H"
+    tbl-pos: "H"
+    keep-tex: true
+    template-partials:
+      - before-body.tex
+    include-in-header:
+      - preamble.tex
+      
+    
+execute:
+  enabled: true
+  echo: false
+  warning: false
+  message: false

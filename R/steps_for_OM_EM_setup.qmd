@@ -212,6 +212,10 @@ matplot(y = new_poor_recdevs[, 1], type = "l", col = "red", add = T)
 lines(x = 1:100, y = unlist(sq_recdevs[, 4]), type = "l", col = "blue")
 
 ```
+## How recdevs are used in ss3sim
+
+Recruitment deviations were passed to Stock Synthesis via the `user_recdevs` argument to `ss3sim_base()` in the {ss3sim} R package [@anderson-ss3sim; @ss3sim-recdevs]. Unlike {ss3sim}'s built-in recruitment deviation generator, which draws standard normal deviates ($z_i$), scales them by $\sigma_R$, and bias-corrects them internally ($\text{recdev}_i = \sigma_R z_i - \sigma_R^2/2$), user-supplied deviations passed via `user_recdevs` are used exactly as specified, with no internal scaling or bias correction applied by the package. Consequently, bias correction was our responsibility to apply where appropriate: no correction was applied to the deterministic component ($\delta_t$) because it is a fixed target trajectory rather than a random draw, while the stochastic noise component ($\varepsilon_{t,i}$) was bias-corrected by subtracting $\sigma^2/2$ (using the noise standard deviation, $\sigma = 0.15$) to ensure the Monte Carlo realizations remained centered on the deterministic decline trend after exponentiation. 
+
 
 ## Simulating F trajectory
 We simulated 200 stochastic F time series, following the same general pattern of the historical time series of F for the commercial and non commercial fleets estimated in the original Opakapaka assessment model. For the 25 years in the future, we used an average F value from the terminal 5 years. F values also had fairly strong temporal autocorrelation (0.7) which makes sense because management is consistent over 3-5 years of time and you would not expect fishing pressure to change drastically from year to year randomly. For non-commercial F, after year 2004, we calculated it as a ratio of 1.03 to commercial F, as is done in the most recent assessment. 
